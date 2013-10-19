@@ -5,3 +5,4 @@ package = ImageX
 version = 7.x-1.0-dev
 project = imagex_aggregator
 dependencies[] = entity
+dependencies[] = aggregator
