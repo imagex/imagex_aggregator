@@ -1,0 +1,632 @@
+<?php
+/**
+ * @file
+ * Code for the ImageX Aggregator feature.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function imagex_aggregator_theme() { 
+   return array(
+     'imagex_aggregator_filter_form' => array(
+       'render element' => 'form',
+       'file' => 'imagex_aggregator.theme.inc',
+     ),
+     'imagex_aggregator_mapping_form' => array(
+       'render element' => 'form',
+       'file' => 'imagex_aggregator.theme.inc',
+     ),
+   );
+}
+
+/**
+ * Implements hook_aggregator_process_info().
+ */
+function imagex_aggregator_aggregator_process_info() { 
+  return array(
+    'title' => t('ImageX Processor'),
+    'description' => t('Processes items and turns them into nodes.'),
+  );  
+}
+
+/**
+ * Implements hook_aggregator_process().
+ */
+function imagex_aggregator_aggregator_process($feed) {
+  module_load_include('inc', 'imagex_aggregator', 'processor');
+  _imagex_aggregator_aggregator_process($feed);
+}
+
+/**
+ * Implements hook_form_aggregator_form_feed_alter().
+ */
+function imagex_aggregator_form_aggregator_form_feed_alter(&$form, &$form_state) {
+  if (in_array('imagex_aggregator', variable_get('aggregator_processors', array('imagex_aggregator')))) {
+    // Add our Submit and Validate function to the form.
+    $form['#submit'][] = 'imagex_aggregator_feed_form_submit';
+    
+    // Get the feed Info
+    $feed = isset($form['fid']['#value']) ? aggregator_feed_load($form['fid']['#value']) : new stdClass();
+    if (isset($feed->fid)) {
+      imagex_aggregator_feed_load($feed);
+    }
+    
+    // Hide the block section as we are importing into nodes and can create views for this  
+    $form['block']['#access'] = FALSE;
+    $form['block']['#default_value'] = 0;
+    
+    $form['fetch'] = array(
+      '#type' => 'button',
+      '#value' => t('Fetch Feed'),
+      '#ajax' => array(
+        'callback' => '_imagex_aggregator_bundle_select_form',
+      ),
+      '#description' => t('The feed must be fetched before filters and mapping can be set for it.'),
+    );
+    
+    /**
+     * Entity Section
+     * 
+     * This section adds entity info on where the feed items will be saved.
+     */
+    $form['entity'] = array(
+      '#type' => 'fieldset',
+      '#collapsible' => TRUE,
+      '#title' => t('Entity Information'),
+      '#description' => t('Choose which entity type and budnle to import the feed items into'),
+    );
+    $entity_info = entity_get_info();
+    foreach ($entity_info as $entity_name => $entity) {
+      $entities[$entity_name] = $entity['label'];
+    }
+    if (isset($form_state['values']['entity_type'])) {
+      $default_entity = $form_state['values']['entity_type'];
+    }
+    else {
+      $default_entity = isset($feed->imagex['entity_type']) ? $feed->imagex['entity_type'] : 'node';
+    }
+    $form['entity']['entity_type'] = array(
+      '#type' => 'select',
+      '#title' => t('Entity Type'),
+      '#default_value' => $default_entity,
+      '#options' => $entities,
+      '#require' => TRUE,
+      // We set up an Ajax call to change the bundles form element out on this forms change
+      '#ajax' => array(
+        'callback' => '_imagex_aggregator_bundles_form',
+        'event' => 'change',
+        'wrapper' => 'js-imagex-aggregator-bundles-form',
+        'method' => 'replace',
+        'effect' => 'fade',
+      ),
+    );
+    
+    // Set up the bundles
+    foreach ($entity_info[$default_entity]['bundles'] as $bundle_name => $bundle) {
+      $bundles[$bundle_name] = $bundle['label'];
+    }
+    $form['entity']['bundle_wrapper'] = array(
+      '#id' => 'js-imagex-aggregator-bundles-form',
+      '#type' => 'container',
+    );
+    $form['entity']['bundle_wrapper']['bundle'] = array(
+      '#type' => 'select',
+      '#title' => t('Bundle'),
+      '#default_value' => isset($feed->imagex['bundle']) ? $feed->imagex['bundle'] : NULL,
+      '#options' => $bundles,
+      '#required' => TRUE,
+      '#ajax' => array(
+        'callback' => '_imagex_aggregator_bundle_select_form',
+        'event' => 'change',
+      ),
+    );
+    
+    /**
+     * Filters Section
+     * 
+     * This section allows users to filter the items of the feed that are saved
+     */
+    $form['filters'] = array(
+      '#type' => 'fieldset',
+      '#id' => 'js-imagex-aggregator-filters-form',
+      '#title' => t('Filters'),
+      '#collapsible' => TRUE,
+      '#description' => t('Setup the filters for this feed.')
+    );
+    // If the feed contains filter info store it in the form_state for later use
+    if (!empty($feed->imagex['filters']) && !isset($form_state['filters'][$feed->url])) {
+      $form_state['filters'][$feed->url] = $feed->imagex['filters'];
+    }
+    if (!empty($form_state['values']['url']) || !empty($feed->url)) {
+      // If the form_state value is set then use that since it may be changed otherwise use the feed->url
+      $url = isset($form_state['values']['url']) ? $form_state['values']['url'] : $feed->url;
+      if (!isset($form_state['#fetched_feeds'][$url])) {
+        $fetched = imagex_agrregator_fetch_feed($url);
+        $form_state['#fetched_feeds'][$url] = !$fetched ? NULL : $fetched;
+      }
+      else {
+        $fetched = $form_state['#fetched_feeds'][$url];
+      }
+      foreach (array_keys($fetched->items[0]) as $key) {
+        $item_keys[$key] = $key; 
+      }
+      $form['filters']['filters'] = array(
+        '#type' => 'container',
+        '#id' => 'js-imagex-aggregator-filters-filters-form',
+        '#tree' => TRUE,
+        '#parents' => array('filters'),
+      );
+      $form['filters']['filters'][$url] = array(
+        '#type' => 'container',
+        '#theme' => 'imagex_aggregator_filter_form',
+        '#url' => $url,
+      );
+      if (isset($form_state['filters'][$url])) {
+        foreach ($form_state['filters'][$url] as $key => $filter) {
+          $conditions = array(
+            'equals' => t('Equals'),
+            'not equal' => t('Does Not Equal'),
+            'contains' => t('Contains'),
+          );
+          $condition = $filter['condition'];
+          $form['filters']['filters'][$url][$key] = array(
+            'item_key' => array(
+              '#type' => 'hidden',
+              '#value' => $filter['item_key'],
+              '#prefix' => $filter['item_key'],
+            ),
+            'condition' => array(
+              '#type' => 'hidden',
+              '#value' => $filter['condition'],
+              '#prefix' => $conditions[$condition],
+            ),
+            'value' => array(
+              '#type' => 'hidden',
+              '#value' => $filter['value'],
+              '#prefix' => $filter['value'],
+            ),
+            'remove'=> array(
+              '#type' => 'submit',
+              // Drupal does some wierd things when the buttons share the same name.
+              // The triggered element doesn't read the right button, so we use the key
+              '#name' => 'remove::' . $key,
+              '#value' => t('Remove Filter'),
+              '#submit' => array('_imagex_aggregator_filter_remove_submit'),
+              '#ajax' => array(
+                'callback' => '_imagex_aggregator_filters_form',
+                'wrapper' => 'js-imagex-aggregator-filters-form',
+                'method' => 'replace',
+                'effect' => 'fade',
+              ),
+            ),
+          );
+        }
+      }
+      $form['filters']['filters'][$url]['add'] = array(
+        'item_key' => array(
+          '#type' => 'select',
+          '#options' => $item_keys,
+          '#title' => t('Key'),
+        ),
+        'condition' => array(
+          '#type' => 'select',
+          '#options' => array(
+            'equals' => t('Equals'),
+            'not equal' => t('Does Not Equal'),
+            'contains' => t('Contains'),
+          ),
+          '#title' => t('Condition'),
+        ),
+        'value' => array(
+          '#type' => 'textfield',
+          '#title' => t('Value'),
+        ),
+        'add' => array(
+          '#type' => 'submit',
+          '#value' => t('Add Filter'),
+          '#submit' => array('_imagex_aggregator_filter_add_submit'),
+          '#validate' => array('_imagex_aggregator_filter_add_validate'),
+          '#ajax' => array(
+            'callback' => '_imagex_aggregator_filters_form',
+            'wrapper' => 'js-imagex-aggregator-filters-form',
+            'method' => 'replace',
+            'effect' => 'fade',
+          ),
+        ),
+      );
+    }
+    else {
+      $form['filters']['error'] = array(
+        '#markup' => '<div class="messages error">' . t('You must set a Feed URL before filters can be set') . '</div>',
+      );
+    }
+    
+    /**
+     * Mappings Section
+     * 
+     * This form section allows the user to map feed->item fields to entity fields for saving
+     */
+    $form['mapping'] = array(
+      '#type' => 'fieldset',
+      '#id' => 'js-imagex-aggregator-mapping-form',
+      '#title' => t('Mapping'),
+      '#collapsible' => TRUE,
+      '#tree' => TRUE,
+      '#parents' => array('mapping'),
+      '#description' => t('Setup the Feed to Entity mappings'),
+    );
+    if (((!empty($form_state['values']['entity_type']) || !empty($feed->imagex['entity_type'])) 
+          && (!empty($form_state['values']['bundle']) || !empty($feed->imagex['bundle']))) &&
+        (!empty($form_state['values']['url']) || !empty($feed->url))) {
+      // If the form_state value is set then use that since it may be changed otherwise use the feed->url
+      $url = isset($form_state['values']['url']) ? $form_state['values']['url'] : $feed->url;
+      if (!isset($form_state['#fetched_feeds'][$url])) {
+        $fetched = imagex_agrregator_fetch_feed($url);
+        $form_state['#fetched_feeds'][$url] = !$fetched ? NULL : $fetched;
+      }
+      else {
+        $fetched = $form_state['#fetched_feeds'][$url];
+      }
+      foreach (array_keys($fetched->items[0]) as $key) {
+        $item_keys[$key] = $key; 
+      }
+      // We need to get the set bundle. The $default_entity is set above
+      if (isset($form_state['values']['bundle'])) {
+        $bundle = $form_state['values']['bundle'];
+      }
+      else {
+        $bundle = isset($feed->imagex['bundle']) ? $feed->imagex['bundle'] : NULL;
+      }
+      if (!empty($feed->imagex['mapping']) && 
+        $default_entity == $feed->imagex['entity_type'] &&
+        $bundle == $feed->imagex['bundle'] &&
+        !isset($form_state['mapping'][$feed->url][$default_entity][$bundle])) 
+      {
+        // Store the default mapping in a place where it is useful
+        $form_state['mapping'][$feed->url][$default_entity][$bundle] = $feed->imagex['mapping'];
+      }      
+      // We need to generate a list of the fields that the items can be mapped to
+      foreach ($entity_info[$default_entity]['schema_fields_sql']['base table'] as $key) {
+        // First we are adding all of the DB Fields for the entity to the Options list
+        $field_keys[$key] = $key;
+      }
+      module_load_include('inc', 'field', 'field.info');
+      foreach (field_info_instances($default_entity, $bundle) as $field_name => $field) {
+        $field_keys['field::' . $field_name] = $field['label'];
+      }
+      $form['mapping'][$url] = array(
+        '#type' => 'container',
+        '#theme' => 'imagex_aggregator_mapping_form',
+        '#url' => $url,
+        '#entity' => $default_entity,
+        '#entity_label' => $entity_info[$default_entity]['label'],
+        '#bundle' => $bundle,
+        '#bundle_label' => $entity_info[$default_entity]['bundles'][$bundle]['label'],
+      );
+      if (isset($form_state['mapping'][$url][$default_entity][$bundle])) {
+        foreach ($form_state['mapping'][$url][$default_entity][$bundle] as $key => $mapping) {
+          $field = $mapping['field'];
+          $form['mapping'][$url][$key] = array(
+            'item_key' => array(
+              '#type' => 'hidden',
+              '#value' => $mapping['item_key'],
+              '#prefix' => $mapping['item_key'],
+            ),
+            'field' => array(
+              '#type' => 'hidden',
+              '#value' => $mapping['field'],
+              '#prefix' => $field_keys[$field],
+            ),
+            'remove'=> array(
+              '#type' => 'submit',
+              // Drupal does some wierd things when the buttons share the same name.
+              // The triggered element doesn't read the right button, so we use the key
+              '#name' => 'remove::' . $key,
+              '#value' => t('Remove Mapping'),
+              '#submit' => array('_imagex_aggregator_mapping_remove_submit'),
+              '#ajax' => array(
+                'callback' => '_imagex_aggregator_mapping_form',
+                'wrapper' => 'js-imagex-aggregator-mapping-form',
+                'method' => 'replace',
+                'effect' => 'fade',
+              ),
+            ),
+          );
+          // Remove the Field from the select list once it's been used
+          unset($field_keys[$field]);
+        }
+      }
+      $form['mapping'][$url]['add'] = array(
+        'item_key' => array(
+          '#type' => 'select',
+          '#options' => $item_keys,
+          '#title' => t('Key'),
+        ),
+        'field' => array(
+          '#type' => 'select',
+          '#title' => t('Entity Field'),
+          '#options' => $field_keys,
+        ),
+        'add'=> array(
+          '#type' => 'submit',
+          '#value' => t('Add Mapping'),
+          '#submit' => array('_imagex_aggregator_mapping_add_submit'),
+          '#validate' => array('_imagex_aggregator_mapping_add_validate'),
+          '#ajax' => array(
+            'callback' => '_imagex_aggregator_mapping_form',
+            'wrapper' => 'js-imagex-aggregator-mapping-form',
+            'method' => 'replace',
+            'effect' => 'fade',
+          ),
+        ),
+      );
+    }
+    else {
+      $form['mapping']['error'] = array(
+        '#markup' => '<div class="messages error">' . t('You must set an Entity, Bundle, and URL before Mapping can be set') . '</div>',
+      );
+    }
+  }
+}
+
+/**
+ * Filter Add Submit
+ */
+function _imagex_aggregator_filter_add_validate(&$form, &$form_state) {
+  // Get the URL key
+  $url = $form_state['values']['url'];
+  $add = $form_state['values']['filters'][$url]['add'];
+  $key = $add['item_key'] . ':' . $add['condition'] . ':' . $add['value'];
+  if (isset($form_state['filters'][$url][$key])) {
+     // If the added filter is already in the array then send and error
+    form_set_error(array('filters', $url, 'add'), t('There is already a filter set with those options'));
+  }
+}
+
+/**
+ * Filter Add Submit
+ */
+function _imagex_aggregator_filter_add_submit(&$form, &$form_state) {
+  // Get the URL key
+  $url = $form_state['values']['url'];
+  if (isset($form_state['values']['filters'][$url])) {
+    $add = $form_state['values']['filters'][$url]['add'];
+    $key = $add['item_key'] . ':' . $add['condition'] . ':' . $add['value'];
+    // If the URl has filters set for it then store them in form_state
+    $form_state['filters'][$url][$key] = $add;
+  }
+  // Make the form rebuild with the current form_state
+  unset($form_state['input']['filters'][$url]['add']);
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Filter Remove Submit
+ */
+function _imagex_aggregator_filter_remove_submit(&$form, &$form_state) {
+  $url = $form_state['values']['url'];
+  // The triggering element array should be array('filters', 'http://example.com', 0, 'remove')
+  // We need the numerical key of that triggered button to remove that whole array
+  $trigger = $form_state['triggering_element']['#parents'][2];
+  $filters = array();
+  if (isset($form_state['filters'][$url])) {
+    unset($form_state['filters'][$url][$trigger]);
+  }
+  // Unset the form_state values for this array so they aren't auto filled in
+  unset($form_state['input']['filters'][$url][$trigger]);
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Mapping Add Submit
+ */
+function _imagex_aggregator_mapping_add_validate(&$form, &$form_state) {
+  // Get the URL key
+  $url = $form_state['values']['url'];
+  $entity = $form_state['values']['entity_type'];
+  $bundle = $form_state['values']['bundle'];
+  $add = $form_state['values']['mapping'][$url]['add'];
+  $key = $add['item_key'] . ':' . $add['field'];
+  if (isset($form_state['mapping'][$url][$entity][$bundle][$key])) {
+     // If the added mapping is already in the array then send and error
+    form_set_error(array('mapping', $url, $entity, $bundle, 'add'), t('There is already a mapping set with those options'));
+  }
+}
+
+/**
+ * Maping Add Submit
+ */
+function _imagex_aggregator_mapping_add_submit(&$form, &$form_state) {
+  // Get the URL key
+  $url = $form_state['values']['url'];
+  $entity = $form_state['values']['entity_type'];
+  $bundle = $form_state['values']['bundle'];
+  if (isset($form_state['values']['mapping'][$url])) {
+    $add = $form_state['values']['mapping'][$url]['add'];
+    $key = $add['item_key'] . ':' . $add['field'];
+    // If the URl has filters set for it then store them in form_state
+    $form_state['mapping'][$url][$entity][$bundle][$key] = $add;
+  }
+  // Make the form rebuild with the current form_state
+  unset($form_state['input']['mapping'][$url]['add']);
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Mapping Remove Submit
+ */
+function _imagex_aggregator_mapping_remove_submit(&$form, &$form_state) {
+  $url = $form_state['values']['url'];
+  $entity = $form_state['values']['entity_type'];
+  $bundle = $form_state['values']['bundle'];
+  // We need the numerical key of that triggered button to remove that whole array
+  $trigger = $form_state['triggering_element']['#parents'][2];
+  $filters = array();
+  if (isset($form_state['mapping'][$url][$entity][$bundle])) {
+    unset($form_state['mapping'][$url][$entity][$bundle][$trigger]);
+  }
+  // Unset the form_state values for this array so they aren't auto filled in
+  unset($form_state['input']['mapping'][$url][$trigger]);
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * An Ajax submit function
+ * 
+ * @return
+ * An ajax command array that replaces the filters and mapping form elements
+ */
+function _imagex_aggregator_bundle_select_form(&$form, $form_state) {
+  return array(
+    '#type' => 'ajax',
+    '#commands' => array(
+      ajax_command_replace("#js-imagex-aggregator-filters-form", render($form['filters'])),
+      ajax_command_replace("#js-imagex-aggregator-mapping-form", render($form['mapping']))
+    )
+  );
+}
+
+/**
+ * An Ajax submit function
+ * 
+ * @return
+ * The Bundles form element
+ */
+function _imagex_aggregator_bundles_form(&$form, &$form_state) {
+  return $form['entity']['bundle_wrapper'];
+}
+
+/**
+ * An Ajax submit function
+ * 
+ * @return
+ * The Filtes form element
+ */
+function _imagex_aggregator_filters_form(&$form, &$form_state) {
+  return $form['filters'];
+}
+
+/**
+ * An Ajax submit function
+ * 
+ * @return
+ * The Mapping form element
+ */
+function _imagex_aggregator_mapping_form(&$form, &$form_state) {
+  return $form['mapping'];
+}
+
+/**
+ * A more utilitarian feed loader then aggregator module provides
+ */
+function imagex_aggregator_feed_load(&$feed) {
+  // Add our load functionality and module_alter
+  $feed->imagex = db_select('imagex_aggregator_feed', 'ixaf')
+    ->condition('fid', $feed->fid)
+    ->fields('ixaf', array(
+      'entity_type',
+      'bundle',
+      'filters',
+      'mapping',
+    ))
+    ->execute()
+    ->fetchAssoc();
+  $feed->imagex['filters'] = unserialize($feed->imagex['filters']);
+  $feed->imagex['mapping'] = unserialize($feed->imagex['mapping']);
+  
+  drupal_alter('aggregator_feed_load', $feed);
+  return $feed;
+}
+
+/**
+ * Fetches a feed and parses out the items data and fields
+ * 
+ * @param $url
+ * The url to fetch
+ * 
+ * @return
+ * The fetched feed parsed into an object
+ */
+function imagex_agrregator_fetch_feed($url) {
+  $feed = new stdClass();
+  $feed->url = $url;
+  $feed->title = $url;
+  $feed->source_string = FALSE;
+  $feed->etag = $feed->modified = NULL;
+  module_load_include('inc', 'aggregator', 'aggregator.fetcher');
+  if (aggregator_aggregator_fetch($feed)) {
+    if ($feed->source_string !== FALSE) {
+      module_load_include('inc', 'aggregator', 'aggregator.parser');
+      if (aggregator_aggregator_parse($feed)) {
+        return $feed;
+      }
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Form Submit Handler for the Feed add/edit Form
+ */
+function imagex_aggregator_feed_form_submit(&$form, &$form_state) {
+  $update = NULL;
+  $url = $form_state['values']['url'];
+  if (isset($form_state['values']['fid'])) {
+    // An Existing Feed (Update SQL)
+    $fid = $form_state['values']['fid'];
+    $update = db_query('SELECT fid FROM {imagex_aggregator_feed} WHERE fid = :fid', array(':fid' => $fid))
+      ->fetchField();
+  }
+  else {
+    // A New Feed (Insert SQL)
+    $fid = db_query('SELECT fid FROM {aggregator_feed} WHERE title = :title AND url = :url', array(
+      ':title' => $form_state['values']['title'],
+      ':url' => $form_state['values']['url']))
+      ->fetchField();
+  }
+  // Unset the add row
+  unset($form_state['values']['filters'][$url]['add']);
+  unset($form_state['values']['mapping'][$url]['add']);
+  
+  if ($update) {
+    db_update('imagex_aggregator_feed')
+      ->condition('fid', $fid)
+      ->fields(array(
+        'entity_type' => $form_state['values']['entity_type'],
+        'bundle' => $form_state['values']['bundle'],
+        'filters' => serialize($form_state['values']['filters'][$url]),
+        'mapping' => serialize($form_state['values']['mapping'][$url]),
+      ))
+      ->execute();
+  }
+  else {
+    db_insert('imagex_aggregator_feed')
+      ->fields(array(
+        'fid' => $fid,
+        'entity_type' => $form_state['values']['entity_type'],
+        'bundle' => $form_state['values']['bundle'],
+        'filters' => serialize($form_state['values']['filters'][$url]),
+        'mapping' => serialize($form_state['values']['mapping'][$url]),
+      ))
+      ->execute();
+  }
+}
+
+/**
+ * Implements hook_aggregator_remove().
+ */
+function imagex_aggregator_aggregator_remove($feed) { 
+  $items = db_select('imagex_aggregator_item', 'ixai')
+    ->condition('fid', $feed->fid)
+    ->fields('ixai', array('entity_type', 'entity_id'))
+    ->execute()
+    ->fetchAll();
+  foreach ($items as $items) {
+    $entities[$item->entity_type][] = $item->entity_id;
+  }
+  foreach ($entities as $type => $ids) {
+    entity_delete_multiple($type, $ids);
+  }
+  db_delete('imagex_aggregator_item')->condition('fid', $feed->fid)->execute();
+}

@@ -1,0 +1,7 @@
+name = ImageX Aggregator
+description = A sophisticated aggregation/curation tool that spans news, blogs, forums and social channels.
+core = 7.x
+package = ImageX
+version = 7.x-1.0-dev
+project = imagex_aggregator
+dependencies[] = entity

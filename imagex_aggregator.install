@@ -1,0 +1,114 @@
+<?php
+/**
+ * @file
+ * Schema, Install, & Uninstall functionality for ImageX Aggregator
+ */
+/**
+ * Implements hook_schema().
+ */
+function imagex_aggregator_schema() { 
+  $schema['imagex_aggregator_feed'] = array(
+    'description' => 'Stores config values for feeds.',
+    'fields' => array(
+      'fid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => "The feed's {aggregator_feed}.fid.",
+      ),
+      'entity_type' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The entity that the feed saves into',
+      ),
+      'bundle' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The bundle of the entity the feed saves to.',
+      ),
+      'filters' => array(
+        'type' => 'text',
+        'serialized' => TRUE,
+        'description' => 'The filters data for the feed.',
+      ),
+      'mapping' => array(
+        'type' => 'text',
+        'serialized' => TRUE,
+        'description' => 'The Mapping data for the feed.',
+      ),
+    ),
+    'primary key' => array('fid'),
+    'indexes' => array(
+      'fid' => array('fid'),
+    ),
+    'foreign keys' => array(
+      'aggregator_feed' => array(
+        'table' => 'aggregator_feed',
+        'columns' => array('fid' => 'fid'),
+      ),
+    ),
+  );
+  
+  $schema['imagex_aggregator_item'] = array(
+    'description' => 'Bridge table; maps feed items to entity ids.',
+    'fields' => array(
+      'iid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => "The feed item's {aggregator_item}.iid.",
+      ),
+      'fid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => "The feed item's {aggregator_feed}.iid.",
+      ),
+      'entity_type' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The entity that the feed saves into',
+      ),
+      'bundle' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The bundle of the entity the feed saves to.',
+      ),
+      'entity_id' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The entity id to which the feed item is being assigned.',
+      ),
+      'link' => array(
+        'type' => 'text',
+        'description' => 'The link to the original for this feed item.',
+      ),
+      'data' => array(
+        'type' => 'text',
+        'serialized' => TRUE,
+        'description' => 'The serialized data of the feed item.',
+      ),
+    ),
+    'primary key' => array('iid'),
+    'indexes' => array(
+      'iid' => array('iid'),
+    ),
+    'foreign keys' => array(
+      'aggregator_item' => array(
+        'table' => 'aggregator_item',
+        'columns' => array('iid' => 'iid'),
+      ),
+    ),
+  );
+  
+  return $schema;
+}
