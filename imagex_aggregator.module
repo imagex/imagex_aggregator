@@ -17,7 +17,137 @@ function imagex_aggregator_theme() {
        'render element' => 'form',
        'file' => 'imagex_aggregator.theme.inc',
      ),
+     'imagex_aggregator_mark' => array(
+       'variables' => array('aggregated'),
+       'file' => 'imagex_aggregator.theme.inc',
+     ),
    );
+}
+
+/**
+ * Implements hook_field_info().
+ */
+function imagex_aggregator_field_info() {
+  $fields = array();
+
+  $fields['imagex_aggregator'] = array(
+    'label' => t('Aggregated'),
+    'description' => t('A field type used for storing whether the entity is generated from the aggregator.'),
+    'settings' => array(),
+    'instance_settings' => array(),
+    'default_widget' => 'imagex_aggregator_checkbox',
+    'default_formatter' => 'imagex_aggregator_link',
+    'no ui' => TRUE,
+    'property_type' => 'integer',
+  );
+
+  return $fields;
+}
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function imagex_aggregator_field_widget_info() { 
+  $widgets = array();
+
+  $widgets['imagex_aggregator_checkbox'] = array(
+    'label' => t('Checkbox'),
+    'field types' => array('imagex_aggregator'),
+    'settings' => array(),
+  );
+
+  return $widgets;
+}
+
+/**
+ * Implements hook_field_widget_form().
+ * 
+ * Creates a disabled Checkbox that indicates the Aggregated state of the entity
+ */
+function imagex_aggregator_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  if (isset($element['#entity'])) {
+    $entity = $element['#entity'];
+    $element += array(
+      '#type' => 'checkbox',
+      '#default_value' => (int) !empty($entity->aggregator_item),
+      '#disabled' => TRUE,
+      '#imagex_aggregator' => isset($entity->aggregator_item) ? (bool) $entity->aggregator_item : NULL,
+    );
+    $element['#element_validate'][] = 'imagex_aggregator_field_widget_validate';
+    return array('aggregated' => $element);
+  }
+}
+
+/**
+ * Field Widget validator
+ */
+function imagex_aggregator_field_widget_validate($element, &$form_state) {
+  if ((bool) $element['#value'] != $element['#imagex_aggregator']) {
+    // If for some reason the user tried to change the Aggreged value reset it back to the proper value
+    form_set_value($element, $element['#imagex_aggregator'], $form_state);
+  }
+}
+
+/**
+ * Implements hook_field_is_empty().
+ */
+function imagex_aggregator_field_is_empty($item, $field) { 
+  if (empty($item['aggregated']) && (string) $item['aggregated'] !== '0') {
+    return TRUE;
+  }
+  return FALSE;  
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function imagex_aggregator_field_formatter_info() { 
+  return array(
+    'imagex_aggregator_default' => array(
+      'label' => t('Aggregated Label'),
+      'field types' => array('imagex_aggregator'),
+    ),
+    'imagex_aggregator_link' => array(
+      'label' => t('Aggregated Link'),
+      'field types' => array('imagex_aggregator'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function imagex_aggregator_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) { 
+  $element = array();
+  $settings = $display['settings'];
+
+  switch ($display['type']) {
+    case 'imagex_aggregator_default':
+      foreach($items as $delta => $item) {
+        $element[$delta] = array(
+          '#theme' => 'imagex_aggregator_mark',
+          '#aggregated' => $item['aggregated'],
+        );
+      }
+      break;
+    case 'imagex_aggregator_link':
+      foreach($items as $delta => $item) {
+        if (!empty($entity->aggregator_item)) {
+          $aggregator_item = db_select('aggregator_item', 'ai')
+            ->condition('iid', $entity->aggregator_item)
+            ->fields('ai')
+            ->execute()->fetchObject();
+          $element[$delta] = array(
+            '#type' => 'link',
+            '#href' => $aggregator_item->link,
+            // @TODO replace this with a configurable option
+            '#title' => t('View Original'),
+          );
+        }
+      }
+      break;
+  }
+  return $element;
 }
 
 /**
@@ -634,7 +764,8 @@ function imagex_aggregator_feed_form_submit(&$form, &$form_state) {
 /**
  * Implements hook_aggregator_remove().
  */
-function imagex_aggregator_aggregator_remove($feed) { 
+function imagex_aggregator_aggregator_remove($feed) {
+  $entities = array();
   $items = db_select('imagex_aggregator_item', 'ixai')
     ->condition('fid', $feed->fid)
     ->fields('ixai', array('entity_type', 'entity_id'))
@@ -647,4 +778,56 @@ function imagex_aggregator_aggregator_remove($feed) {
     entity_delete_multiple($type, $ids);
   }
   db_delete('imagex_aggregator_item')->condition('fid', $feed->fid)->execute();
+  db_delete('aggregator_item')->condition('fid', $feed->fid)->execute();
+}
+
+/**
+ * Adds the imagex_aggregator Field to any entity/bundle that needs it.
+ * 
+ * @param $entity_type
+ * The (machine name) Entity type
+ * 
+ * @param @bundle
+ * The (machine name) Entity Bundle
+ * 
+ * @param $label
+ * The label for the field
+ * 
+ * @return
+ * Aggregator Field Info
+ */
+function imagex_aggregator_add_field_instance($entity_type, $bundle, $label = 'Aggregated') {
+  // Add or remove the imagex_aggregator field, as needed.
+  $field = field_info_field('field_imagex_aggregator');
+  $instance = field_info_instance($entity_type, 'field_imagex_aggregator', $bundle);
+  if (empty($field)) {
+    $field = array(
+      'field_name' => 'field_imagex_aggregator',
+      'type' => 'imagex_aggregator',
+      'entity_types' => array($entity_type),
+    );
+    $field = field_create_field($field);
+  }
+  
+  if (empty($instance)) {
+    $instance = array(
+      'field_name' => 'field_imagex_aggregator',
+      'entity_type' => $entity_type,
+      'bundle' => $bundle,
+      'label' => $label,
+      'widget' => array('type' => 'imagex_aggregator_checkbox'),
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'type' => 'imagex_aggregator_link',
+        ),
+        'teaser' => array(
+          'label' => 'hidden',
+          'type' => 'imagex_aggregator_link',
+        ),
+      ),
+    );
+    $instance = field_create_instance($instance);
+  }
+  return $instance;
 }

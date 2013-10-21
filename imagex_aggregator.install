@@ -112,3 +112,18 @@ function imagex_aggregator_schema() {
   
   return $schema;
 }
+
+/**
+ * Implements hook_field_schema().
+ */
+function imagex_aggregator_field_schema($field) { 
+  $columns = array(
+    'aggregated' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+      'length' => 1,
+    ),
+  );
+  return array('columns' => $columns);
+}

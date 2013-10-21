@@ -72,3 +72,18 @@ function theme_imagex_aggregator_mapping_form($vars) {
     'caption' => t('Mappings for %url', array('%url' => $form['#url'])),
   )); 
 }
+
+/**
+ * Theme implementaion of Aggregator mark
+ * 
+ * Adds a simple "marked" class span with the words 'Aggregated'
+ * 
+ * @param $variables
+ *   An associative array containing:
+ *   - aggregated: Boolean determining whether or not to display the marker
+ */
+function theme_imagex_aggregator_mark($variables) {
+  if (!empty($variables['aggregated'])) {
+    return ' <span class="marker">' . t('Aggregated') . '</span>';
+  }
+}

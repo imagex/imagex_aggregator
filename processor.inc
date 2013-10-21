@@ -22,6 +22,10 @@ function _imagex_aggregator_aggregator_process($feed) {
       // If we made it through the filtering without a break then we've passed
       $passed = TRUE;
     }
+    if (empty($feed->imagex['filters'])) {
+      // Automatically pass the filters if the feed didn't have any set
+      $passed = TRUE;
+    }
     if (!$passed) {
       // The filters didn't pass continue on to the next item
       continue;
@@ -54,14 +58,22 @@ function _imagex_aggregator_aggregator_process($feed) {
     $item['iid'] = $edit['iid'];
     $update = db_query("SELECT iid FROM {imagex_aggregator_item} WHERE fid = :fid AND iid = :iid", array(':fid' => $feed->fid, ':iid' => $item['iid']))->fetchField();
     
-    if (!$update) {
+    // We need to check the iid is valid because for some reson the feed inserts the rss channel node as an item
+    if (!$update && is_numeric($item['iid'])) {
       // This is not an existing item so we need to create a entity for it.
       // First we need to get the bundle key so we can create a proper entity
       $entity_info = entity_get_info($feed->imagex['entity_type']);
       $bundle_key = isset($entity_info['bundle_keys']['bundle']) ? $entity_info['bundle_keys']['bundle'] : 'type';
+            
+      // We now make sure our field is added to this entity bundle
+      if (!empty($entity_info['fieldable'])) {
+        imagex_aggregator_add_field_instance($feed->imagex['entity_type'], $feed->imagex['bundle']);
+      }
+      
       // Now we create our entity and then an entity wrapper for ease of seting values
       $entity = entity_create($feed->imagex['entity_type'], array($bundle_key => $feed->imagex['bundle']));
       $wrapper = entity_metadata_wrapper($feed->imagex['entity_type'], $entity);
+      
       // Then we walk through each mapping and set the data
       foreach ($feed->imagex['mapping'] as $map) {
         // We need to go through the fields and properties that were mapped and save them into the entity wrapper
@@ -87,6 +99,9 @@ function _imagex_aggregator_aggregator_process($feed) {
           $wrapper->{$field} = $item[$key];
         }
       }
+      // We need to set the imagex_aggregator field
+      $wrapper->field_imagex_aggregator->set(1);
+      
       // Lastly we save the entity
       $wrapper->save();
       
