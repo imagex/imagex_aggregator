@@ -67,11 +67,12 @@ function _imagex_aggregator_aggregator_process($feed) {
         // We need to go through the fields and properties that were mapped and save them into the entity wrapper
         if (strpos($map['field'], 'field::') === 0) {
           // This is a field
-          $field = str_replace('field::', '', $map['field']);
+          // We list out the exploded array skipping the first item in the array (field::) to get the field name and column key
+          list(,$field, $column) = explode('::', $map['field']);
           $key = $map['item_key'];
           try {
             // We need to wrap field values in arrays
-            $wrapper->{$field}->set(array($item[$key]));
+            $wrapper->{$field}->set(array($column => $item[$key]));
           }
           catch (Exception $e) {
             drupal_set_message(t('You have tried to inset data into an entity that it wasn\'t expecting. For example putting a letter value where an integer was needed. Please verify the mapping you have set'), 'error');

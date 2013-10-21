@@ -21,6 +21,21 @@ function imagex_aggregator_theme() {
 }
 
 /**
+ * Implements hook_entity_load().
+ */
+function imagex_aggregator_entity_load($entities, $type) { 
+  foreach ($entities as $entity) {
+    $id = entity_id($type, $entity);
+    $item_id = db_select('imagex_aggregator_item', 'ixai')
+      ->condition('entity_type', $type)
+      ->condition('entity_id', $id)
+      ->fields('ixai', array('iid'))
+      ->execute()->fetchField();
+    $entity->aggregator_item = $item_id;
+  }
+}
+
+/**
  * Implements hook_aggregator_process_info().
  */
 function imagex_aggregator_aggregator_process_info() { 
@@ -293,7 +308,10 @@ function imagex_aggregator_form_aggregator_form_feed_alter(&$form, &$form_state)
       }
       module_load_include('inc', 'field', 'field.info');
       foreach (field_info_instances($default_entity, $bundle) as $field_name => $field) {
-        $field_keys['field::' . $field_name] = $field['label'];
+        $field_info = field_info_field($field_name);
+        foreach ($field_info['columns'] as $column => $column_info) {
+          $field_keys['field::' . $field_name . '::' . $column] = $field['label'] . ' - ' . $column;
+        }
       }
       $form['mapping'][$url] = array(
         '#type' => 'container',
