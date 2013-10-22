@@ -1,0 +1,29 @@
+<?php
+/**
+ * @file
+ * ImageX Aggregator Extras Module
+ */
+
+/**
+ * Implements views)default_views_alter()
+ * 
+ * Alters the admin/content view if the admin_views.module is enabled
+ */
+function imagex_aggregator_extras_views_default_views_alter(&$views) {
+  if (isset($views['admin_views_node']) && field_info_field('field_imagex_aggregator')) {
+    $view = &$views['admin_views_node'];
+    dpm ($view->display['default']);
+    $field_imagex_aggregator['field_imagex_aggregator']['id'] = 'field_imagex_aggregator';
+    $field_imagex_aggregator['field_imagex_aggregator']['table'] = 'field_data_field_imagex_aggregator';
+    $field_imagex_aggregator['field_imagex_aggregator']['field'] = 'field_imagex_aggregator';
+    $field_imagex_aggregator['field_imagex_aggregator']['label'] = '';
+    $field_imagex_aggregator['field_imagex_aggregator']['exclude'] = TRUE;
+    $field_imagex_aggregator['field_imagex_aggregator']['element_label_colon'] = FALSE;
+    $field_imagex_aggregator['field_imagex_aggregator']['type'] = 'imagex_aggregator_default';
+    // Prepend the Field to the start of the views fields so it can be used later by the timestamp
+    array_unshift($view->display['default']->display_options['fields'], $field_imagex_aggregator);
+    
+    $view->display['default']->display_options['fields']['timestamp']['alter']['alter_text'] = TRUE;
+    $view->display['default']->display_options['fields']['timestamp']['alter']['text'] = '[field_imagex_aggregator] [timestamp]';
+  }
+}
