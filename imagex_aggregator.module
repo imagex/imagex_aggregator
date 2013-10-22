@@ -53,7 +53,7 @@ function imagex_aggregator_field_widget_info() {
   $widgets['imagex_aggregator_checkbox'] = array(
     'label' => t('Checkbox'),
     'field types' => array('imagex_aggregator'),
-    'settings' => array('disabled' => TRUE),
+    'settings' => array('disabled' => FALSE),
   );
 
   return $widgets;

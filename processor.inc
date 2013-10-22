@@ -102,8 +102,14 @@ function _imagex_aggregator_aggregator_process($feed) {
       // We need to set the imagex_aggregator field
       $wrapper->field_imagex_aggregator->set(1);
       
+      // Invoke a hook before saving
+      module_invoke_all('imagex_aggregator_entity_presave', $wrapper, $item, $feed);
+      
       // Lastly we save the entity
       $wrapper->save();
+      
+      // Invoke a hook after saving
+      module_invoke_all('imagex_aggregator_entity_save', $wrapper, $item, $feed);
       
       $id = $wrapper->getIdentifier();
       if (!empty($id)) {

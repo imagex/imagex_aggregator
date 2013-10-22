@@ -3,6 +3,8 @@
  * @file
  * ImageX Aggregator Extras Module
  */
+define('IMAGEX_AGGREGATOR_EXTRA_VOCAB', 'tags');
+define('IMAGEX_AGGREGATOR_EXTRA_TAG', 'Aggregated');
 
 /**
  * Implements views)default_views_alter()
@@ -12,18 +14,72 @@
 function imagex_aggregator_extras_views_default_views_alter(&$views) {
   if (isset($views['admin_views_node']) && field_info_field('field_imagex_aggregator')) {
     $view = &$views['admin_views_node'];
-    dpm ($view->display['default']);
-    $field_imagex_aggregator['field_imagex_aggregator']['id'] = 'field_imagex_aggregator';
-    $field_imagex_aggregator['field_imagex_aggregator']['table'] = 'field_data_field_imagex_aggregator';
-    $field_imagex_aggregator['field_imagex_aggregator']['field'] = 'field_imagex_aggregator';
-    $field_imagex_aggregator['field_imagex_aggregator']['label'] = '';
-    $field_imagex_aggregator['field_imagex_aggregator']['exclude'] = TRUE;
-    $field_imagex_aggregator['field_imagex_aggregator']['element_label_colon'] = FALSE;
-    $field_imagex_aggregator['field_imagex_aggregator']['type'] = 'imagex_aggregator_default';
-    // Prepend the Field to the start of the views fields so it can be used later by the timestamp
-    array_unshift($view->display['default']->display_options['fields'], $field_imagex_aggregator);
     
-    $view->display['default']->display_options['fields']['timestamp']['alter']['alter_text'] = TRUE;
-    $view->display['default']->display_options['fields']['timestamp']['alter']['text'] = '[field_imagex_aggregator] [timestamp]';
+    $fields['field_imagex_aggregator']['id'] = 'field_imagex_aggregator';
+    $fields['field_imagex_aggregator']['table'] = 'field_data_field_imagex_aggregator';
+    $fields['field_imagex_aggregator']['field'] = 'field_imagex_aggregator';
+    $fields['field_imagex_aggregator']['label'] = '';
+    $fields['field_imagex_aggregator']['exclude'] = TRUE;
+    $fields['field_imagex_aggregator']['element_label_colon'] = FALSE;
+    $fields['field_imagex_aggregator']['type'] = 'imagex_aggregator_default';
+    $fields['field_imagex_aggregator']['weight'] = -50;
+    foreach ($view->display['default']->display_options['fields'] as $key => $value) {
+      // This allows our field to be the first in the array of fields
+      $fields[$key] = $value;
+    }
+    
+    $fields['timestamp']['alter']['alter_text'] = TRUE;
+    $fields['timestamp']['alter']['text'] = '[field_imagex_aggregator] [timestamp]';
+    // Save the fields back to the view
+    $view->display['default']->display_options['fields'] = $fields;
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function imagex_aggregator_extras_form_node_admin_content_alter(&$form, &$form_state) {
+  $nodes = &$form['admin']['nodes']['#options'];
+  foreach ($nodes as $nid => $element) {
+    $item_id = db_select('imagex_aggregator_item', 'ixai')
+      ->condition('entity_type', 'node')
+      ->condition('entity_id', $nid)
+      ->fields('ixai', array('iid'))
+      ->execute()->fetchField();
+    if ($item_id) {
+      $nodes[$nid]['title']['data']['#suffix'] .= theme('imagex_aggregator_mark', array('aggregated' => $item_id)); 
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_presave().
+ */
+function imagex_aggregator_extras_entity_presave($entity, $type) {
+  $language = entity_language($type, $entity);
+  if (isset($entity->field_tags) && is_array($entity->field_imagex_aggregator)) {
+    // We know this entity has a tags field and aggregator field
+    // Now we can add a "Aggregated" tag to it and tie that tag to the Aggregated field
+    $tags = taxonomy_get_term_by_name(IMAGEX_AGGREGATOR_EXTRA_TAG, IMAGEX_AGGREGATOR_EXTRA_VOCAB);
+    if (!empty($tags)) {
+      $tag = array_shift($tags);
+      $exists = FALSE;
+      if (is_array($entity->field_tags[$language])) {
+        foreach ($entity->field_tags[$language] as $key => $existing) {
+          if ($existing['tid'] == $tag->tid) {
+            $exisits = $key;
+          }
+        }
+      }
+      if ($exists && empty($entity->field_imagex_aggregator[$language][0]['aggregated'])) {
+        // If the tag exists and the aggregated field is empty, then we remove the tag
+        unset($entity->field_tags[$language][$key]);
+      }
+      if (!$exists && !empty($entity->field_imagex_aggregator[$language][0]['aggregated'])) {
+        // If the tag doesn't exist and the aggregated field is set then add the tag
+        $entity->field_tags[$language][] = array('tid' => $tag->tid);
+      }
+      // The other options are a double positive or double negative in which case we don't need to do anything
+    }
   }
 }
