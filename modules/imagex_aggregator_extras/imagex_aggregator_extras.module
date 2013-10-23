@@ -6,8 +6,28 @@
 define('IMAGEX_AGGREGATOR_EXTRA_VOCAB', 'tags');
 define('IMAGEX_AGGREGATOR_EXTRA_TAG', 'Aggregated');
 
+
 /**
- * Implements views)default_views_alter()
+ * Implements hook_views_api().
+ */
+function imagex_aggregator_extras_views_api() { 
+  return array(
+    'api' => 3,
+  );
+}
+
+/**
+ * Implements hook_views_data().
+ */
+function imagex_aggregator_extras_views_data_alter(&$data) { 
+  $data['field_data_field_imagex_aggregator']['field_imagex_aggregator_aggregated']['filter']['handler'] = 'views_handler_filter_boolean_operator';
+  $data['field_data_field_imagex_aggregator']['field_imagex_aggregator_aggregated']['filter']['type'] = 'yes-no';
+  $data['field_revision_field_imagex_aggregator']['field_imagex_aggregator_aggregated']['filter']['handler'] = 'views_handler_filter_boolean_operator';
+  $data['field_revision_field_imagex_aggregator']['field_imagex_aggregator_aggregated']['filter']['type'] = 'yes-no';
+}
+
+/**
+ * Implements views_default_views_alter()
  * 
  * Alters the admin/content view if the admin_views.module is enabled
  */
@@ -30,8 +50,29 @@ function imagex_aggregator_extras_views_default_views_alter(&$views) {
     
     $fields['timestamp']['alter']['alter_text'] = TRUE;
     $fields['timestamp']['alter']['text'] = '[field_imagex_aggregator] [timestamp]';
+    $fields['timestamp']['alter']['hide_alter_empty'] = FALSE;
     // Save the fields back to the view
     $view->display['default']->display_options['fields'] = $fields;
+    
+    /* Filter criterion: Content: Aggregated (field_imagex_aggregator) */
+    $view->display['default']->display_options['filters']['field_imagex_aggregator_aggregated']['id'] = 'field_imagex_aggregator_aggregated';
+    $view->display['default']->display_options['filters']['field_imagex_aggregator_aggregated']['table'] = 'field_data_field_imagex_aggregator';
+    $view->display['default']->display_options['filters']['field_imagex_aggregator_aggregated']['field'] = 'field_imagex_aggregator_aggregated';
+    $view->display['default']->display_options['filters']['field_imagex_aggregator_aggregated']['value'] = 'All';
+    $view->display['default']->display_options['filters']['field_imagex_aggregator_aggregated']['exposed'] = TRUE;
+    $view->display['default']->display_options['filters']['field_imagex_aggregator_aggregated']['expose']['operator_id'] = '';
+    $view->display['default']->display_options['filters']['field_imagex_aggregator_aggregated']['expose']['label'] = 'Aggregated';
+    $view->display['default']->display_options['filters']['field_imagex_aggregator_aggregated']['expose']['operator'] = 'field_imagex_aggregator_aggregated_op';
+    $view->display['default']->display_options['filters']['field_imagex_aggregator_aggregated']['expose']['identifier'] = 'field_imagex_aggregator_aggregated';
+    $view->display['default']->display_options['filters']['field_imagex_aggregator_aggregated']['expose']['remember_roles'] = array(
+      2 => '2',
+      1 => 0,
+      3 => 0,
+      7 => 0,
+      5 => 0,
+      6 => 0,
+      4 => 0,
+    );
   }
 }
 
@@ -40,6 +81,7 @@ function imagex_aggregator_extras_views_default_views_alter(&$views) {
  */
 function imagex_aggregator_extras_form_node_admin_content_alter(&$form, &$form_state) {
   $nodes = &$form['admin']['nodes']['#options'];
+  $filters = &$form['filter']['filters']['status']['filters'];
   foreach ($nodes as $nid => $element) {
     $item_id = db_select('imagex_aggregator_item', 'ixai')
       ->condition('entity_type', 'node')
@@ -48,6 +90,54 @@ function imagex_aggregator_extras_form_node_admin_content_alter(&$form, &$form_s
       ->execute()->fetchField();
     if ($item_id) {
       $nodes[$nid]['title']['data']['#suffix'] .= theme('imagex_aggregator_mark', array('aggregated' => $item_id)); 
+    }
+  }
+  $filters['aggregated'] = array(
+    '#type' => 'select',
+    '#title' => t('aggregated'),
+    '#options' => array(t('any'), t('Aggregated'), t('Not Aggregated')),
+  );
+    
+  $form['#submit'][] = 'imagex_aggregator_extras_form_node_admin_content_submit';
+}
+
+/**
+ * Form Submit for the node filter
+ */
+function imagex_aggregator_extras_form_node_admin_content_submit($form, &$form_state) {
+  switch ($form_state['values']['op']) {
+    case t('Filter'):
+    case t('Refine'):
+      if (isset($form_state['values']['aggregated']) && $form_state['values']['aggregated'] != 0) {
+        $_SESSION['node_overview_filter'][] = array('aggregated', $form_state['values']['aggregated']);
+      }
+      break;
+  }
+}
+
+/**
+ * Implements hook_query_node_access_alter().
+ */
+function imagex_aggregator_extras_query_node_access_alter($query) {
+  $continue = FALSE;
+  foreach (debug_backtrace() as $debug) {
+    // This is a totally hackish way to acomplish this but the node_admin_nodes form is not very extensible
+    if ($debug['function'] == 'node_admin_nodes') {
+      $continue = TRUE;
+    }
+  }
+  if ($continue) {
+    foreach ($_SESSION['node_overview_filter'] as $filter) {
+      if ($filter[0] == 'aggregated' && !empty($filter[1])) {
+        // We can alter the query to add our filter keys and such
+        $query->leftJoin('imagex_aggregator_item', 'ixai', 'n.nid = ixai.entity_id AND ixai.entity_type = \'node\'');
+        if ($filter[1] == 2) {
+          $query->isNull('ixai.entity_id');
+        }
+        else {
+          $query->isNotNull('ixai.entity_id');
+        }
+      } 
     }
   }
 }
