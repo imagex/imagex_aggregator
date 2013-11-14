@@ -6,7 +6,7 @@
 /**
  * Implements hook_uninstall().
  */
-function social_uninstall() {
+function imagex_aggregator_social_uninstall() {
 
   $types = db_select('imagex_aggregator_social_type', 'st')
     ->fields('st')
@@ -23,7 +23,7 @@ function social_uninstall() {
 /**
  * Implements hook_schema().
  */
-function social_schema() {
+function imagex_aggregator_social_schema() {
 
   $schema['imagex_aggregator_social'] = array(
     'description' => 'Stores social media items.',

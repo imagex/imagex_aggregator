@@ -3,8 +3,6 @@
  * @file
  */
 
-
-
 /**
  * Displays the content type admin overview page.
  */
