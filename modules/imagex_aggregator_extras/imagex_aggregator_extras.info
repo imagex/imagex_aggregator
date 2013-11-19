@@ -1,0 +1,7 @@
+name = ImageX Aggregator Extras
+description = Extra Features for the ImageX Aggregator
+core = 7.x
+package = ImageX
+version = 7.x-1.0-dev
+project = imagex_aggregator_extras
+dependencies[] = imagex_aggregator

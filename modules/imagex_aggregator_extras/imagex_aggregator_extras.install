@@ -1,0 +1,21 @@
+<?php
+/**
+ * @file
+ * Install hooks
+ */
+
+/**
+ * Implements hook_install().
+ */
+function imagex_aggregator_extras_install() {
+  drupal_load('module', 'imagex_aggregator_extras');
+  // We need to add the 'Aggregated' Tag on install if it's not already there.
+  $tags = taxonomy_get_term_by_name(IMAGEX_AGGREGATOR_EXTRA_TAG, IMAGEX_AGGREGATOR_EXTRA_VOCAB);
+  $vocab = taxonomy_vocabulary_machine_name_load(IMAGEX_AGGREGATOR_EXTRA_VOCAB);
+  if (empty($tags) && !empty($vocab)) {
+    $term->vocabulary_machine_name = IMAGEX_AGGREGATOR_EXTRA_VOCAB;
+    $term->name = 'Aggregated';
+    $term->vid = $vocab->vid;
+    taxonomy_term_save((object) $term);
+  }
+}
