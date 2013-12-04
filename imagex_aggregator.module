@@ -907,3 +907,24 @@ function imagex_aggregator_add_field_instance($entity_type, $bundle, $label = 'A
   }
   return $instance;
 }
+
+/**
+ * Implements hook_imagex_aggregator_entity_presave().
+ */
+function imagex_aggregator_imagex_aggregator_entity_presave($wrapper, $item, $feed) {
+  // If entity has author properties & no mapping for UID, default author to user 1
+  // Check no mapping to uid field
+  if (!empty($feed->imagex['mapping'])) {
+    foreach ($feed->imagex['mapping'] as $map => $map_data) {
+      if ($map_data['field'] == 'uid') {
+        return;  
+      }
+    }
+  }
+  
+  // Check property is allow for entity type
+  $properties = $wrapper->getPropertyInfo();
+  if (!empty($properties['author'])) {
+     $wrapper->author->set('1');
+  }
+}
