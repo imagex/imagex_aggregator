@@ -4,6 +4,9 @@
  * Code for the ImageX Aggregator feature.
  */
 
+// Make module like a feature to export views
+include_once 'imagex_aggregator.features.inc'; 
+ 
 /**
  * Implements hook_theme().
  */
