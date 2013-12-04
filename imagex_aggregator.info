@@ -4,5 +4,13 @@ core = 7.x
 package = ImageX
 version = 7.x-1.0-dev
 project = imagex_aggregator
-dependencies[] = entity
 dependencies[] = aggregator
+dependencies[] = entity
+dependencies[] = views
+dependencies[] = views_content
+explanation = Field type(s) in use - see <a href="/?q=admin/reports/fields">Field list</a>
+features[ctools][] = views:views_default:3.0
+features[features_api][] = api:2
+features[views_view][] = imagex_aggregator_content
+features_exclude[dependencies][ctools] = ctools
+required = 1
