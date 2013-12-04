@@ -847,7 +847,7 @@ function imagex_aggregator_aggregator_remove($feed) {
     ->fields('ixai', array('entity_type', 'entity_id'))
     ->execute()
     ->fetchAll();
-  foreach ($items as $items) {
+  foreach ($items as $item) {
     $entities[$item->entity_type][] = $item->entity_id;
   }
   foreach ($entities as $type => $ids) {
