@@ -82,13 +82,22 @@ function _imagex_aggregator_aggregator_process($feed) {
           // We list out the exploded array skipping the first item in the array (field::) to get the field name and column key
           list(,$field, $column) = explode('::', $map['field']);
           $key = $map['item_key'];
+          $value = $item[$key];
+          drupal_alter('imagex_aggregator_field_presave', $value, $field, $feed->imagex['entity_type'], $feed->imagex['bundle']);
           try {
             // We need to wrap field values in arrays
-            $wrapper->{$field}->set(array($column => $item[$key]));
+            $wrapper->{$field}->set(array($column => $value));
           }
           catch (Exception $e) {
             drupal_set_message(t('You have tried to inset data into an entity that it wasn\'t expecting. For example putting a letter value where an integer was needed. Please verify the mapping you have set'), 'error');
-            return;
+            // Remove the item form the aggregator storage since it was not processed
+            db_delete('aggregator_item')
+              ->condition('iid', $item['iid'])
+              ->execute();
+            db_delete('aggregator_category_item')
+              ->condition('iid', $item['iid'])
+              ->execute();
+            continue;
           }
           
         }
@@ -96,20 +105,35 @@ function _imagex_aggregator_aggregator_process($feed) {
           // This is a property
           $field = $map['field'];
           $key = $map['item_key'];
-          $wrapper->{$field} = $item[$key];
+          $value = $item[$key];
+          drupal_alter('imagex_aggregator_property_presave', $value, $field, $feed->imagex['entity_type'], $feed->imagex['bundle']);
+          $wrapper->{$field} = $value;
         }
       }
-      // We need to set the imagex_aggregator field
-      $wrapper->field_imagex_aggregator->set(1);
-      
-      // Invoke a hook before saving
-      module_invoke_all('imagex_aggregator_entity_presave', $wrapper, $item, $feed);
-      
-      // Lastly we save the entity
-      $wrapper->save();
-      
-      // Invoke a hook after saving
-      module_invoke_all('imagex_aggregator_entity_save', $wrapper, $item, $feed);
+      try {
+        // We need to set the imagex_aggregator field
+        $wrapper->field_imagex_aggregator->set(1);
+        
+        // Invoke a hook before saving
+        module_invoke_all('imagex_aggregator_entity_presave', $wrapper, $item, $feed);
+        
+        // Lastly we save the entity
+        $wrapper->save();
+        
+        // Invoke a hook after saving
+        module_invoke_all('imagex_aggregator_entity_save', $wrapper, $item, $feed);
+      }
+      catch (Exception $e) {
+        drupal_set_message(t('There was an error saving an entity. This most likely due to your mappings. Please verify the mapping you have set'), 'error');
+        // Remove the item form the aggregator storage since it was not processed
+        db_delete('aggregator_item')
+          ->condition('iid', $item['iid'])
+          ->execute();
+        db_delete('aggregator_category_item')
+          ->condition('iid', $item['iid'])
+          ->execute();
+        continue;
+      }
       
       $id = $wrapper->getIdentifier();
       if (!empty($id)) {
