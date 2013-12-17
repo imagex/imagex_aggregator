@@ -13,6 +13,10 @@
 function _imagex_aggregator_aggregator_process($feed) {
   imagex_aggregator_feed_load($feed);
   $items = array();
+  $complete = 0;
+  $errors = 0;
+  $filtered = 0;
+  $total = count($items);
   foreach ($feed->items as $item) {
     $passed = FALSE;
     foreach ($feed->imagex['filters'] as $filter) {
@@ -28,6 +32,7 @@ function _imagex_aggregator_aggregator_process($feed) {
     }
     if (!$passed) {
       // The filters didn't pass continue on to the next item
+      $filtered++;
       continue;
     }
     $items[] = $item;
@@ -97,6 +102,7 @@ function _imagex_aggregator_aggregator_process($feed) {
             db_delete('aggregator_category_item')
               ->condition('iid', $item['iid'])
               ->execute();
+            $error++;
             continue;
           }
           
@@ -132,6 +138,7 @@ function _imagex_aggregator_aggregator_process($feed) {
         db_delete('aggregator_category_item')
           ->condition('iid', $item['iid'])
           ->execute();
+        $error++;
         continue;
       }
       
@@ -149,9 +156,11 @@ function _imagex_aggregator_aggregator_process($feed) {
             'data' => serialize($item),
           ))
           ->execute();
+        $complete++;
       }
     }
   }
+  drupal_set_message(t('Processed @complete items.<br />Filtered @filtered items.<br />Skipped @errors items with errors', array('@complete' => $complete, '@filtered' => $filtered, '@errors' => $errors)));
 }
 
 /**
