@@ -931,3 +931,35 @@ function imagex_aggregator_imagex_aggregator_entity_presave($wrapper, $item, $fe
      $wrapper->author->set('1');
   }
 }
+
+/**
+ * Implements hook_imagex_aggregator_property_presave_alter().
+ */
+function imagex_aggregator_imagex_aggregator_property_presave_alter(&$value, $field, $type, $bundle) {
+  switch ($type) {
+    case 'node':
+      if (in_array($field, array('created', 'changed')) & !is_numeric($value)) {
+        // If the value isn't numeric then we need to try to convert it to a time stamp.
+        $value = strtotime($value);
+      }
+      if (in_array($field, array('nid','vid','uid','tnid','translate')) && !is_numeric($value)) {
+        // If it's not a number convert it to one
+        $value = (integer) $value;
+      }
+      if (in_array($field, array('status','sticky','promote'))) {
+        $value = (bool) $value;
+      }
+      break;
+  }
+}
+
+/**
+ * Implements hook_imagex_aggregator_field_presave_alter().
+ */
+function imagex_aggregator_imagex_aggregator_field_presave_alter(&$value, $field, $type, $bundle) { 
+  switch ($type) {
+    case 'node':
+
+      break;
+  }
+}
