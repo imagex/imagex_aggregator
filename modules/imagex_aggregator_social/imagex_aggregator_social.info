@@ -2,12 +2,10 @@ name = Imagex Social Media entities
 description = Creates social media entities for storing social media content.
 core = 7.x
 package = ImageX
-
+dependencies[] = ctools
 dependencies[] = entity
 dependencies[] = feeds
-dependencies[] = ctools
 dependencies[] = views
-
 files[] = includes/SocialController.class.php
 files[] = includes/social.admin.inc
 files[] = includes/social_type.admin.inc
