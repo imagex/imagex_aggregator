@@ -8,7 +8,7 @@
 /**
  * Creates nodes from feed items.
  */
-class SocialProcessor extends FeedsProcessor {
+class ImagexSocialProcessor extends FeedsProcessor {
 
   /**
    * Define entity type.
