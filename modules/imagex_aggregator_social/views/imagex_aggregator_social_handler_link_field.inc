@@ -6,7 +6,7 @@
  * as fields.
  */
 
-class social_handler_link_field extends views_handler_field {
+class imagex_aggregator_social_handler_link_field extends views_handler_field {
   function construct() {
     parent::construct();
 
@@ -41,6 +41,6 @@ class social_handler_link_field extends views_handler_field {
     $text = !empty($this->options['text']) ? $this->options['text'] : t('view');
     $smid = $values->{$this->aliases['smid']};
 
-    return l($text, 'social/' . $smid);
+    return l($text, 'imagex_aggregator_social/' . $smid);
   }
 }

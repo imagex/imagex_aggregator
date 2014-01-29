@@ -1,15 +1,12 @@
 <?php
-
 /**
  * @file
- * Class definition of SocialProcessor.
  */
 
 /**
  * Creates nodes from feed items.
  */
-class ImagexSocialProcessor extends FeedsProcessor {
-
+class ImagexAggregatorSocialProcessor extends FeedsProcessor {
   /**
    * Define entity type.
    */
@@ -40,7 +37,7 @@ class ImagexSocialProcessor extends FeedsProcessor {
     $social->is_new = TRUE;
     // node_object_prepare($social);
     // Populate properties that are set by node_object_prepare().
-    $social->log = 'Created by SocialProcessor';
+    $social->log = 'Created by ImagexAggregatorSocialProcessor';
     $social->uid = $this->config['author'];
     return $social;
   }
@@ -102,10 +99,10 @@ class ImagexSocialProcessor extends FeedsProcessor {
 
     // Populate properties that are set by social_object_prepare().
     if ($this->config['update_existing'] == FEEDS_UPDATE_EXISTING) {
-      $social->log = 'Updated by SocialProcessor';
+      $social->log = 'Updated by ImagexAggregatorSocialProcessor';
     }
     else {
-      $social->log = 'Replaced by SocialProcessor';
+      $social->log = 'Replaced by ImagexAggregatorSocialProcessor';
     }
     return $social;
   }
@@ -114,7 +111,6 @@ class ImagexSocialProcessor extends FeedsProcessor {
    * Check that the user has permission to save a node.
    */
   protected function entitySaveAccess($entity) {
-
     // The check will be skipped for anonymous nodes.
     if ($this->config['authorize'] && !empty($entity->uid)) {
 

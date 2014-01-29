@@ -8,7 +8,7 @@
 /**
  * UI controller.
  */
-class ImagexSocialTypeUIController extends EntityDefaultUIController {
+class ImagexAggregatorSocialTypeUIController extends EntityDefaultUIController {
 
   /**
    * Overrides hook_menu() defaults.
