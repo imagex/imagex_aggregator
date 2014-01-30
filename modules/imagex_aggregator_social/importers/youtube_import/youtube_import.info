@@ -6,5 +6,5 @@ package = Social Media
 dependencies[] = feeds
 dependencies[] = feeds_jsonpath_parser
 dependencies[] = libraries
-dependencies[] = social
+dependencies[] = imagex_aggregator_social
 
