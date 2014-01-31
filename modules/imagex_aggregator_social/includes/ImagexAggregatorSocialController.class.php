@@ -36,7 +36,7 @@ class ImagexAggregatorSocialController extends EntityAPIController /* implements
 
   public function create(array $values = array()) {
     $entity = (object) array(
-      'bundle' => $values['social_type'],
+      'bundle' => $values['imagex_aggregator_social_type'],
       'language' => LANGUAGE_NONE,
       'is_new' => TRUE,
     );
@@ -44,7 +44,7 @@ class ImagexAggregatorSocialController extends EntityAPIController /* implements
     // Ensure basic fields are defined.
     $values += array(
       'type' => 'imagex_aggregator_social',
-      'social_type' => '',
+      'imagex_aggregator_social_type' => '',
       // 'title' => '',
       'iid' => '',
       // 'delta' => '',

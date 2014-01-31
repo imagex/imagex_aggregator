@@ -98,7 +98,6 @@ function imagex_aggregator_social_schema() {
       // 'iid-type' => array('iid', 'social_type'),
     ),
   );
-
   $schema['imagex_aggregator_social_revision'] =  array(
     'description' => 'Stores social media items.',
     'fields' => array(
@@ -145,7 +144,6 @@ function imagex_aggregator_social_schema() {
       'smid' => array('smid', 'vid'),
     ),
   );
-
   $schema['imagex_aggregator_social_type'] = array(
     'description' => 'Stores information about defined social types.',
     'fields' => array(
@@ -187,7 +185,5 @@ function imagex_aggregator_social_schema() {
       'type' => array('type'),
     ),
   );
-
-return $schema;
-
+  return $schema;
 }
