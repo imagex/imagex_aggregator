@@ -16,7 +16,7 @@
  * @see hook_entity_info_alter()
  */
 
-interface ImageXSocialControllerInterface
+interface ImagexAggregatorSocialControllerInterface
   extends DrupalEntityControllerInterface {
     public function create($values);
     public function save($entity);
@@ -29,24 +29,22 @@ interface ImageXSocialControllerInterface
  * Our subclass of DrupalDefaultEntityController lets us add a few
  * important create, update, and delete methods.
  */
-class ImageXSocialController
-  extends EntityAPIController {
-  // implements SocialControllerInterface {
+class ImagexAggregatorSocialController extends EntityAPIController /* implements ImagexAggregatorSocialControllerInterface */ {
   public function __construct($entityType) {
     parent::__construct($entityType);
   }
 
   public function create(array $values = array()) {
     $entity = (object) array(
-      'bundle' => $values['social_type'],
+      'bundle' => $values['imagex_aggregator_social_type'],
       'language' => LANGUAGE_NONE,
       'is_new' => TRUE,
     );
 
     // Ensure basic fields are defined.
     $values += array(
-      'type' => 'social',
-      'social_type' => '',
+      'type' => 'imagex_aggregator_social',
+      'imagex_aggregator_social_type' => '',
       // 'title' => '',
       'iid' => '',
       // 'delta' => '',
@@ -77,7 +75,7 @@ class ImageXSocialController
 
     // Load the stored entity, if any.
     if (!$entity->is_new && !isset($entity->original)) {
-      $entity->original = entity_load_unchanged('social', $entity->smid);
+      $entity->original = entity_load_unchanged('imagex_aggregator_social', $entity->smid);
     }
 
     $transaction = db_transaction();
@@ -94,8 +92,8 @@ class ImageXSocialController
 
     $entity->changed = REQUEST_TIME;
 
-    field_attach_presave('social', $entity);
-    module_invoke_all('entity_presave', $entity, 'social');
+    field_attach_presave('imagex_aggregator_social', $entity);
+    module_invoke_all('entity_presave', $entity, 'imagex_aggregator_social');
 
     // When saving a new entity revision, unset any existing $entity->vid
     // to ensure a new revision will actually be created and store the old
@@ -106,39 +104,39 @@ class ImageXSocialController
       $entity->timestamp = REQUEST_TIME;
     }
 
-    module_invoke_all('entity_presave', $entity, 'social');
+    module_invoke_all('entity_presave', $entity, 'imagex_aggregator_social');
 
     try {
       if (!$entity->is_new) {
         // Since we already have an smid, write the revision to ensure the
         // vid is the most up to date, then write the record.
         $this->saveRevision($entity);
-        drupal_write_record('social', $entity, 'smid');
+        drupal_write_record('imagex_aggregator_social', $entity, 'smid');
 
-        field_attach_update('social', $entity);
-        module_invoke_all('entity_update', $entity, 'social');
+        field_attach_update('imagex_aggregator_social', $entity);
+        module_invoke_all('entity_update', $entity, 'imagex_aggregator_social');
 
       }
       else {
         // If this is new, write the record first so we have an fpid,
         // then save the revision so that we have a vid. This means we
         // then have to write the vid again.
-        drupal_write_record('social', $entity);
+        drupal_write_record('imagex_aggregator_social', $entity);
         $this->saveRevision($entity);
-        db_update('social')
+        db_update('imagex_aggregator_social')
           ->fields(array('vid' => $entity->vid))
           ->condition('smid', $entity->smid)
           ->execute();
 
-        field_attach_insert('social', $entity);
-        module_invoke_all('entity_insert', $entity, 'social');
+        field_attach_insert('imagex_aggregator_social', $entity);
+        module_invoke_all('entity_insert', $entity, 'imagex_aggregator_social');
       }
 
       return $entity;
     }
     catch (Exception $e) {
       $transaction->rollback();
-      watchdog_exception('social', $e);
+      watchdog_exception('imagex_aggregator_social', $e);
     }
 
     return FALSE;
@@ -163,12 +161,12 @@ class ImageXSocialController
     $entity->uid = $uid;
     // Update the existing revision if specified.
     if (!empty($entity->vid)) {
-      drupal_write_record('social_revision', $entity, 'vid');
+      drupal_write_record('imagex_aggregator_social_revision', $entity, 'vid');
     }
     else {
       // Otherwise insert a new revision. This will automatically update $entity
       // to include the vid.
-      drupal_write_record('social_revision', $entity);
+      drupal_write_record('imagex_aggregator_social_revision', $entity);
     }
   }
 
@@ -179,27 +177,27 @@ class ImageXSocialController
       try {
         foreach ($entities as $smid => $entity) {
           // Call the entity-specific callback (if any):
-          module_invoke_all('entity_delete', $entity, 'social');
-          field_attach_delete('social', $entity);
+          module_invoke_all('entity_delete', $entity, 'imagex_aggregator_social');
+          field_attach_delete('imagex_aggregator_social', $entity);
         }
 
         // Delete after calling hooks so that they can query entity tables as needed.
-        db_delete('social')
+        db_delete('imagex_aggregator_social')
           ->condition('smid', $smids, 'IN')
           ->execute();
 
-        db_delete('social_revision')
+        db_delete('imagex_aggregator_social_revision')
           ->condition('smid', $smids, 'IN')
           ->execute();
       }
       catch (Exception $e) {
         $transaction->rollback();
-        watchdog_exception('social', $e);
+        watchdog_exception('imagex_aggregator_social', $e);
         throw $e;
       }
 
       // Clear the page and block and entity_load_multiple caches.
-      entity_get_controller('social')->resetCache();
+      entity_get_controller('imagex_aggregator_social')->resetCache();
     }
   }
 
@@ -235,7 +233,7 @@ class ImageXSocialController
         // If the entity type provides an implementation, use this instead the
         // generic one.
         // @see template_preprocess_entity()
-        '#theme' => 'social',
+        '#theme' => 'imagex_aggregator_social',
         '#entity_type' => $this->entityType,
         '#entity' => $entity,
         '#view_mode' => $view_mode,

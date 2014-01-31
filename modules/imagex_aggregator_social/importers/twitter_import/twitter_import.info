@@ -3,6 +3,6 @@ description = Creates Twitter integration for storing social media content from 
 core = 7.x
 package = Social Media
 
-dependencies[] = social
+dependencies[] = imagex_aggregator_social
 dependencies[] = twitter
 

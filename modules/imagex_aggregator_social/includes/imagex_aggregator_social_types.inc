@@ -49,7 +49,7 @@ function imagex_aggregator_social_overview_types() {
     '#theme' => 'table',
     '#header' => $header,
     '#rows' => $rows,
-    '#empty' => t('No social types available. <a href="@link">Add social type</a>.', array('@link' => url('admin/structure/types/add'))),
+    '#empty' => t('No social types available. <a href="@link">Add social type</a>.', array('@link' => url('admin/structure/imagex_aggregator_social_types/add'))),
   );
 
   return $build;

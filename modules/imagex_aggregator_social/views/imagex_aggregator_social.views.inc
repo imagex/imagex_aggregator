@@ -9,26 +9,26 @@
 /**
  * Implements hook_views_data()
  */
-function social_views_data_alter(&$data) {
+function imagex_aggregator_social_views_data_alter(&$data) {
   $data['imagex_aggregator_social']['link_social'] = array(
     'field' => array(
       'title' => t('Link'),
       'help' => t('Provide a link to the social.'),
-      'handler' => 'social_handler_link_field',
+      'handler' => 'imagex_aggregator_social_handler_link_field',
     ),
   );
   $data['imagex_aggregator_social']['edit_social'] = array(
     'field' => array(
       'title' => t('Edit Link'),
       'help' => t('Provide a link to the edit form for the social.'),
-      'handler' => 'social_handler_edit_link_field',
+      'handler' => 'imagex_aggregator_social_handler_edit_link_field',
     ),
   );
   $data['imagex_aggregator_social']['delete_social'] = array(
     'field' => array(
       'title' => t('Delete Link'),
       'help' => t('Provide a link to delete the social.'),
-      'handler' => 'social_handler_delete_link_field',
+      'handler' => 'imagex_aggregator_social_handler_delete_link_field',
     ),
   );
   // This content of this field are decided based on the menu structure that
@@ -37,7 +37,7 @@ function social_views_data_alter(&$data) {
     'field' => array(
       'title' => t('Operations links'),
       'help' => t('Display all operations available for this social.'),
-      'handler' => 'social_handler_social_operations_field',
+      'handler' => 'imagex_aggregator_social_handler_social_operations_field',
     ),
   );
 }
@@ -46,14 +46,14 @@ function social_views_data_alter(&$data) {
 /**
  * Implements hook_views_default_views().
  */
-function social_views_default_views() {
+function imagex_aggregator_social_views_default_views() {
   $views = array();
 
   $view = new view();
   $view->name = 'socials';
   $view->description = 'A list of all socials';
-  $view->tag = 'socials';
-  $view->base_table = 'social';
+  $view->tag = 'imagex_aggregator_socials';
+  $view->base_table = 'imagex_aggregator_socials';
   $view->human_name = 'Socials';
   $view->core = 7;
   $view->api_version = '3.0';
@@ -177,7 +177,7 @@ function social_views_default_views() {
 
   /* Display: Page */
   $handler = $view->new_display('page', 'Page', 'socials_admin_page');
-  $handler->display->display_options['path'] = 'admin/content/socials/list';
+  $handler->display->display_options['path'] = 'admin/content/imagex_aggregator_socials/list';
   $handler->display->display_options['menu']['type'] = 'default tab';
   $handler->display->display_options['menu']['title'] = 'List';
   $handler->display->display_options['menu']['weight'] = '-10';

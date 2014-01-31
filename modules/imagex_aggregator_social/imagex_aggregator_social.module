@@ -79,9 +79,9 @@ function imagex_aggregator_social_entity_info() {
   $info['imagex_aggregator_social'] = array(
     // A human readable label to identify our entity.
     'label' => t('Social Media Entity'),
-    'entity class' => 'ImagexSocial',
+    'entity class' => 'ImagexAggregatorSocial',
     // The controller for our Entity, extending the Drupal core controller.
-    'controller class' => 'ImagexSocialController',
+    'controller class' => 'ImagexAggregatorSocialController',
     // The table for this entity defined in hook_schema()
     'base table' => 'imagex_aggregator_social',
     'revision table' => 'imagex_aggregator_social_revision',
@@ -113,9 +113,9 @@ function imagex_aggregator_social_entity_info() {
     // The information below is used by the ModelUIController (which extends the EntityDefaultUIController)
     'admin ui' => array(
       'path' => 'social',
-      'file' => 'social.admin.inc',
+      'file' => 'imagex_aggregator_social.admin.inc',
       'file path' =>  drupal_get_path('module', 'imagex_aggregator_social') . '/includes',
-      'controller class' => 'ImagexSocialUIController',
+      'controller class' => 'ImagexAggregatorSocialUIController',
       'menu wildcard' => '%imagex_aggregator_social',
     ),
     // View modes allow entities to be displayed differently based on context.
@@ -131,26 +131,25 @@ function imagex_aggregator_social_entity_info() {
   // The entity that holds information about the entity types
   $info['imagex_aggregator_social_type'] = array(
     'label' => t('Social Media Type'),
-    'entity class' => 'ImagexSocialType',
-    'controller class' => 'ImagexSocialTypeController',
+    'entity class' => 'ImagexAggregatorSocialType',
+    'controller class' => 'ImagexAggregatorSocialTypeController',
     'base table' => 'imagex_aggregator_social_type',
-    'fieldable' => FALSE,
+    'fieldable' => TRUE,
     'bundle of' => 'imagex_aggregator_social',
     'exportable' => TRUE,
     'entity keys' => array(
       'id' => 'id',
       'name' => 'type',
       'label' => 'label',
-      'bundle' => 'type',
     ),
     'access callback' => 'imagex_aggregator_social_type_access',
     'module' => 'imagex_aggregator_social',
     // Enable the entity API's admin UI.
     'admin ui' => array(
-      'path' => 'admin/structure/social_types',
+      'path' => 'admin/structure/imagex_aggregator_social_types',
       'file' => 'imagex_aggregator_social_type.admin.inc',
       'file path' =>  drupal_get_path('module', 'imagex_aggregator_social') . '/includes',
-      'controller class' => 'ImagexSocialTypeUIController',
+      'controller class' => 'ImagexAggregatorSocialTypeUIController',
       'menu wildcard' => '%imagex_aggregator_social_type',
     ),
   );
@@ -170,13 +169,12 @@ function imagex_aggregator_social_entity_info_alter(&$entity_info) {
     $entity_info['imagex_aggregator_social']['bundles'][$type] = array(
       'label' => $info->label,
       'admin' => array(
-        'path' => 'admin/structure/social_types/manage/%imagex_aggregator_social_type',
-        'real path' => 'admin/structure/social_types/manage/' . $type,
+        'path' => 'admin/structure/imagex_aggregator_social_types/manage/%imagex_aggregator_social_type',
+        'real path' => 'admin/structure/imagex_aggregator_social_types/manage/' . $type,
         'bundle argument' => 4,
-        'access arguments' => array('administer social types'),
+        'access arguments' => array('administer imagex_aggregator_social types'),
       ),
     );
-
   }
   $entity_info['imagex_aggregator_social']['view modes']['imagex_aggregator_social_block'] = array(
     'label' => t('Social block'),
@@ -199,14 +197,14 @@ function imagex_aggregator_social_views_api() {
  */
 function imagex_aggregator_social_feeds_plugins() {
   $info = array();
-  $info['ImagexSocialProcessor'] = array(
+  $info['ImagexAggregatorSocialProcessor'] = array(
     'name' => 'Social processor',
     'description' => 'Processes social media data.',
     'handler' => array(
       // A plugin needs to derive either directly or indirectly from FeedsFetcher, FeedsParser or FeedsProcessor.
       'parent' => 'FeedsProcessor',
-      'class' => 'ImagexSocialProcessor',
-      'file' => 'ImagexSocialProcessor.inc',
+      'class' => 'ImagexAggregatorSocialProcessor',
+      'file' => 'ImagexAggregatorSocialProcessor.inc',
       'path' => drupal_get_path('module', 'imagex_aggregator_social') . '/plugins',
     ),
   );
@@ -356,7 +354,7 @@ function imagex_aggregator_social_load_multiple($smids = FALSE, $conditions = ar
  */
 function imagex_aggregator_social_uri($social){
   return array(
-    'path' => 'social/' . $social->smid,
+    'path' => 'imagex_aggregator_social/' . $social->smid,
   );
 }
 
@@ -372,7 +370,7 @@ function imagex_aggregator_social_admin_page() {
   );
   $content[] = array(
     '#type' => 'item',
-    '#markup' => l(t('Add a social entity'), 'social/facebook/add'),
+    '#markup' => l(t('Add a social entity'), 'imagex_aggregator_social/facebook/add'),
   );
   $content['table'] = imagex_aggregator_social_list_entities();
   return $content;
@@ -399,7 +397,7 @@ function imagex_aggregator_social_list_entities() {
       $rows[] = array(
         'data' => array(
           'id' => $entity->smid,
-          'iid' => l($entity->iid, 'social/facebook/' . $entity->smid),
+          'iid' => l($entity->iid, 'imagex_aggregator_social/facebook/' . $entity->smid),
           'bundle' => $entity->bundle,
         ),
       );
@@ -596,7 +594,7 @@ function imagex_aggregator_social_form_submit($form, &$form_state) {
   $entity->iid = $form_state['values']['item_id'];
   field_attach_submit('imagex_aggregator_social', $entity, $form, $form_state);
   imagex_aggregator_social_save($entity);
-  $form_state['redirect'] = 'social/' . $entity->imagex_aggregator_social_type . '/' . $entity->smid;
+  $form_state['redirect'] = 'imagex_aggregator_social/' . $entity->imagex_aggregator_social_type . '/' . $entity->smid;
 }
 
 /**
@@ -610,7 +608,7 @@ function imagex_aggregator_social_edit_delete(&$form, &$form_state) {
   drupal_set_message(t('The entity %iid (ID %id) has been deleted',
     array('%iid' => $entity->iid, '%id' => $entity->smid))
   );
-  $form_state['redirect'] = 'social/facebook/add';
+  $form_state['redirect'] = 'imagex_aggregator_social/facebook/add';
 }
 
 /**
@@ -640,7 +638,7 @@ function imagex_aggregator_social_delete($entity) {
 /**
  * Saves a social type to the db.
  */
-function imagex_aggregator_social_type_save(ImagexSocialType $type) {
+function imagex_aggregator_social_type_save(ImagexAggregatorSocialType $type) {
   $type->save();
 }
 
@@ -648,7 +646,7 @@ function imagex_aggregator_social_type_save(ImagexSocialType $type) {
 /**
  * Deletes a social type from the db.
  */
-function imagex_aggregator_social_type_delete(ImagexSocialType $type) {
+function imagex_aggregator_social_type_delete(ImagexAggregatorSocialType $type) {
   $type->delete();
 }
 
@@ -657,8 +655,8 @@ function imagex_aggregator_social_type_delete(ImagexSocialType $type) {
  */
 function imagex_aggregator_social_menu_local_tasks_alter(&$data, $router_item, $root_path) {
   // Add action link 'admin/structure/models/add' on 'admin/structure/models'.
-  if ($root_path == 'admin/content/socials') {
-    $item = menu_get_item('admin/content/socials/add');
+  if ($root_path == 'admin/content/imagex_aggregator_social') {
+    $item = menu_get_item('admin/content/imagex_aggregator_social/add');
     if ($item['access']) {
       $data['actions']['output'][] = array(
         '#theme' => 'menu_local_action',
@@ -734,9 +732,9 @@ function template_preprocess_social(&$variables) {
 /**
  * The class used for model entities
  */
-class ImagexSocial extends Entity {
+class ImagexAggregatorSocial extends Entity {
   /**
-   * Creates a new instance of ImagexSocial.
+   * Creates a new instance of ImagexAggregatorSocial.
    *
    * @param array $values
    */
@@ -748,7 +746,7 @@ class ImagexSocial extends Entity {
    * {@inheritDoc}
    */
   protected function defaultUri() {
-    return array('path' => 'social/' . $this->smid);
+    return array('path' => 'imagex_aggregator_social/' . $this->smid);
   }
 
   /**
@@ -768,12 +766,12 @@ class ImagexSocial extends Entity {
 /**
  * The class used for model type entities
  */
-class ImagexSocialType extends Entity {
+class ImagexAggregatorSocialType extends Entity {
   public $type;
   public $label;
 
   /**
-   * Creates a new instance of ImagexSocialType.
+   * Creates a new instance of ImagexAggregatorSocialType.
    *
    * @param array $values
    */
@@ -785,7 +783,7 @@ class ImagexSocialType extends Entity {
 /**
  * The Controller for Model entities
  */
-class ImagexSocialTypeController extends EntityAPIControllerExportable {
+class ImagexAggregatorSocialTypeController extends EntityAPIControllerExportable {
   public function __construct($entityType) {
     parent::__construct($entityType);
   }

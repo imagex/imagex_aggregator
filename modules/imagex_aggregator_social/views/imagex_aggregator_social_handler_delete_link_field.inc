@@ -2,12 +2,12 @@
 
 /**
  * @file
- * Contains a Views field handler to take care of displaying edit links
+ * Contains a Views field handler to take care of displaying deletes links
  * as fields
  */
 
 
-class social_handler_edit_link_field extends social_handler_link_field {
+class imagex_aggregator_social_handler_delete_link_field extends imagex_aggregator_social_handler_link_field {
   function construct() {
     parent::construct();
     $this->additional_fields['imagex_aggregator_social_type'] = 'imagex_aggregator_social_type';
@@ -23,9 +23,9 @@ class social_handler_edit_link_field extends social_handler_link_field {
       return;
     }
 
-    $text = !empty($this->options['text']) ? $this->options['text'] : t('edit');
+    $text = !empty($this->options['text']) ? $this->options['text'] : t('delete');
     $smid = $values->{$this->aliases['smid']};
 
-    return l($text, 'social/' . $smid . '/edit');
+    return l($text, 'imagex_aggregator_social/' . $smid . '/delete');
   }
 }

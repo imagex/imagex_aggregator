@@ -12,7 +12,7 @@
 /**
  * UI controller.
  */
-class ImagexSocialUIController extends EntityDefaultUIController {
+class ImagexAggregatorSocialUIController extends EntityDefaultUIController {
 
   /**
    * Overrides hook_menu() defaults. Main reason for doing this is that
@@ -45,11 +45,11 @@ class ImagexSocialUIController extends EntityDefaultUIController {
       'access arguments' => array('edit'),
       'type' => MENU_NORMAL_ITEM,
       'weight' => 20,
-      'file' => 'social.admin.inc',
+      'file' => 'imagex_aggregator_social.admin.inc',
       'file path' => drupal_get_path('module', $this->entityInfo['module']) . '/includes'
 
     );
-    $items['admin/content/socials/add'] = array(
+    $items['admin/content/imagex_aggregator_socials/add'] = array(
       'title' => 'Add a social media item',
       'description' => 'Add a new social media item',
       'page callback'  => 'imagex_aggregator_social_add_page',
@@ -57,7 +57,7 @@ class ImagexSocialUIController extends EntityDefaultUIController {
       'access arguments' => array('edit'),
       'type' => MENU_NORMAL_ITEM,
       'weight' => 20,
-      'file' => 'social.admin.inc',
+      'file' => 'imagex_aggregator_social.admin.inc',
       'file path' => drupal_get_path('module', $this->entityInfo['module']) . '/includes'
 
     );
@@ -70,16 +70,16 @@ class ImagexSocialUIController extends EntityDefaultUIController {
         'page arguments' => array(imagex_aggregator_social_create(array('imagex_aggregator_social_type' => $type->type))),
         'access callback' => 'imagex_aggregator_social_access',
         'access arguments' => array('edit', $type->type),
-        'file' => 'social.admin.inc',
+        'file' => 'imagex_aggregator_social.admin.inc',
         'file path' => drupal_get_path('module', $this->entityInfo['module']) . '/includes'
       );
-      $items['admin/content/socials/add/' . $type->type] = array(
+      $items['admin/content/imagex_aggregator_socials/add/' . $type->type] = array(
         'title' => 'Add ' . $type->label,
         'page callback' => 'imagex_aggregator_social_form_wrapper',
         'page arguments' => array(imagex_aggregator_social_create(array('imagex_aggregator_social_type' => $type->type))),
         'access callback' => 'imagex_aggregator_social_access',
         'access arguments' => array('edit', $type->type),
-        'file' => 'social.admin.inc',
+        'file' => 'imagex_aggregator_social.admin.inc',
         'file path' => drupal_get_path('module', $this->entityInfo['module']) . '/includes'
       );
     }
@@ -92,7 +92,7 @@ class ImagexSocialUIController extends EntityDefaultUIController {
       'access arguments' => array('edit', $id_count + 1),
       'weight' => 0,
       'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
-      'file' => 'social.admin.inc',
+      'file' => 'imagex_aggregator_social.admin.inc',
       'file path' => drupal_get_path('module', $this->entityInfo['module']) . '/includes'
     );
     $items[$this->path . '/' . $wildcard . '/edit'] = array(
@@ -105,7 +105,7 @@ class ImagexSocialUIController extends EntityDefaultUIController {
 
 
     // Menu item for viewing socials
-    $items['social/' . $wildcard] = array(
+    $items['imagex_aggregator_social/' . $wildcard] = array(
       //'title' => 'Title',
       'title callback' => 'imagex_aggregator_social_title',
       'title arguments' => array(1),
@@ -115,12 +115,12 @@ class ImagexSocialUIController extends EntityDefaultUIController {
       'access arguments' => array('view', 1),
       'type' => MENU_CALLBACK,
     );
-    $items['social/' . $wildcard . '/view'] = array(
+    $items['imagex_aggregator_social/' . $wildcard . '/view'] = array(
       'title' => 'View',
       'type' => MENU_DEFAULT_LOCAL_TASK,
       'weight' => -10,
     );
-    $items['social/' . $wildcard . '/edit'] = array(
+    $items['imagex_aggregator_social/' . $wildcard . '/edit'] = array(
       'title' => 'Edit',
       'page callback' => 'imagex_aggregator_social_form_wrapper',
       'page arguments' => array(1),
@@ -129,7 +129,7 @@ class ImagexSocialUIController extends EntityDefaultUIController {
       'weight' => 0,
       'type' => MENU_LOCAL_TASK,
       'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
-      'file' => 'social.admin.inc',
+      'file' => 'imagex_aggregator_social.admin.inc',
       'file path' => drupal_get_path('module', $this->entityInfo['module']) . '/includes'
     );
     $items[$this->path . '/' . $wildcard . '/delete'] = array(
@@ -141,7 +141,7 @@ class ImagexSocialUIController extends EntityDefaultUIController {
       'type' => MENU_LOCAL_TASK,
       'context' => MENU_CONTEXT_INLINE,
       'weight' => 10,
-      'file' => 'social.admin.inc',
+      'file' => 'imagex_aggregator_social.admin.inc',
       'file path' => drupal_get_path('module', $this->entityInfo['module']) . '/includes'
     );
 
@@ -250,7 +250,7 @@ function imagex_aggregator_social_edit_form($form, &$form_state, $social) {
     $form['actions']['delete'] = array(
       '#type' => 'submit',
       '#value' => t('Delete social item'),
-      '#suffix' => l(t('Cancel'), 'admin/content/socials'),
+      '#suffix' => l(t('Cancel'), 'admin/content/imagex_aggregator_socials'),
       '#submit' => $submit + array('imagex_aggregator_social_form_submit_delete'),
       '#weight' => 45,
     );
@@ -288,7 +288,7 @@ function imagex_aggregator_social_edit_form_submit(&$form, &$form_state) {
   $social->iid = $form_state['values']['item_id'];
   field_attach_submit('imagex_aggregator_social', $social, $form, $form_state);
   imagex_aggregator_social_save($social);
-  $form_state['redirect'] = 'social/' . $social->smid;
+  $form_state['redirect'] = 'imagex_aggregator_social/' . $social->smid;
 
 }
 
@@ -298,7 +298,7 @@ function imagex_aggregator_social_edit_form_submit(&$form, &$form_state) {
  * @todo Remove hard-coded path
  */
 function imagex_aggregator_social_form_submit_delete(&$form, &$form_state) {
-  $form_state['redirect'] = 'social/' . $form_state['values']['imagex_aggregator_social_entity']->smid . '/delete';
+  $form_state['redirect'] = 'imagex_aggregator_social/' . $form_state['values']['imagex_aggregator_social_entity']->smid . '/delete';
 }
 
 
@@ -317,7 +317,7 @@ function imagex_aggregator_social_delete_form($form, &$form_state, $social) {
 
   $form = confirm_form($form,
     t('Are you sure you want to delete social %name?', array('%name' => $social->iid)),
-    'admin/content/socials/social',
+    'admin/content/imagex_aggregator_socials/imagex_aggregator_social',
     '<p>' . t('This action cannot be undone.') . '</p>',
     t('Delete'),
     t('Cancel'),
@@ -338,7 +338,7 @@ function imagex_aggregator_social_delete_form_submit($form, &$form_state) {
   drupal_set_message(t('The social %name has been deleted.', array('%name' => $social->iid)));
   watchdog('social', 'Deleted social %name.', array('%name' => $social->iid));
 
-  $form_state['redirect'] = 'admin/content/socials';
+  $form_state['redirect'] = 'admin/content/imagex_aggregator_socials';
 }
 
 
@@ -349,7 +349,7 @@ function imagex_aggregator_social_delete_form_submit($form, &$form_state) {
  * @todo Pass this through a proper theme function
  */
 function imagex_aggregator_social_add_page() {
-  $controller = entity_ui_controller('social');
+  $controller = entity_ui_controller('imagex_aggregator_social');
   return $controller->addPage();
 }
 
@@ -382,10 +382,6 @@ function theme_imagex_aggregator_social_add_list($variables) {
   return $output;
 }
 
-
-
-
-
 /**
  * Sets the breadcrumb for administrative social pages.
  */
@@ -394,7 +390,7 @@ function imagex_aggregator_social_set_breadcrumb() {
     l(t('Home'), '<front>'),
     l(t('Administration'), 'admin'),
     l(t('Content'), 'admin/content'),
-    l(t('Socials'), 'admin/content/socials'),
+    l(t('Socials'), 'admin/content/imagex_aggregator_socials'),
   );
 
   drupal_set_breadcrumb($breadcrumb);
