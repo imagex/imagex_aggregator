@@ -5,8 +5,22 @@
  */
 
 // Make module like a feature to export views
-include_once 'imagex_aggregator.features.inc'; 
- 
+include_once 'imagex_aggregator.features.inc';
+
+/**
+ * Implements hook_imagex_variables().
+ */
+function imagex_aggregator_imagex_variables() {
+  $variables = array();
+  // On installation of this module, ensure that the ImageX Aggregator Processor is also
+  // available as a processor.
+  $variables['aggregator_processors'] = variable_get('aggregator_processors', array());
+  if (!isset($variables['aggregator_processors']['imagex_aggregator'])) {
+    $variables['aggregator_processors']['imagex_aggregator'] = 'imagex_aggregator';
+  }
+  return $variables;
+}
+
 /**
  * Implements hook_theme().
  */
