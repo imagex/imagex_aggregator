@@ -298,6 +298,17 @@ function imagex_aggregator_views_default_views() {
   $handler->display->display_options['fields']['edit_node']['label'] = '';
   $handler->display->display_options['fields']['edit_node']['element_label_colon'] = FALSE;
   $handler->display->display_options['fields']['edit_node']['text'] = 'Edit';
+  /* Sort criterion: Scheduler: Publish on */
+  $handler->display->display_options['sorts']['publish_on']['id'] = 'publish_on';
+  $handler->display->display_options['sorts']['publish_on']['table'] = 'scheduler';
+  $handler->display->display_options['sorts']['publish_on']['field'] = 'publish_on';
+  $handler->display->display_options['sorts']['publish_on']['order'] = 'DESC';
+  /* Filter criterion: Content: Aggregated (field_imagex_aggregator) */
+  $handler->display->display_options['filters']['field_imagex_aggregator_aggregated']['id'] = 'field_imagex_aggregator_aggregated';
+  $handler->display->display_options['filters']['field_imagex_aggregator_aggregated']['table'] = 'field_data_field_imagex_aggregator';
+  $handler->display->display_options['filters']['field_imagex_aggregator_aggregated']['field'] = 'field_imagex_aggregator_aggregated';
+  $handler->display->display_options['filters']['field_imagex_aggregator_aggregated']['value'] = '1';
+  $handler->display->display_options['filters']['field_imagex_aggregator_aggregated']['group'] = 1;
   /* Filter criterion: Content: Published */
   $handler->display->display_options['filters']['status']['id'] = 'status';
   $handler->display->display_options['filters']['status']['table'] = 'node';
@@ -319,15 +330,11 @@ function imagex_aggregator_views_default_views() {
     4 => 0,
     8 => 0,
   );
-  /* Filter criterion: Content: Aggregated (field_imagex_aggregator) */
-  $handler->display->display_options['filters']['field_imagex_aggregator_aggregated']['id'] = 'field_imagex_aggregator_aggregated';
-  $handler->display->display_options['filters']['field_imagex_aggregator_aggregated']['table'] = 'field_data_field_imagex_aggregator';
-  $handler->display->display_options['filters']['field_imagex_aggregator_aggregated']['field'] = 'field_imagex_aggregator_aggregated';
-  $handler->display->display_options['filters']['field_imagex_aggregator_aggregated']['operator'] = 'not empty';
   /* Filter criterion: Content: Type */
   $handler->display->display_options['filters']['type']['id'] = 'type';
   $handler->display->display_options['filters']['type']['table'] = 'node';
   $handler->display->display_options['filters']['type']['field'] = 'type';
+  $handler->display->display_options['filters']['type']['group'] = 1;
   $handler->display->display_options['filters']['type']['exposed'] = TRUE;
   $handler->display->display_options['filters']['type']['expose']['operator_id'] = 'type_op';
   $handler->display->display_options['filters']['type']['expose']['label'] = 'Type';
@@ -423,6 +430,8 @@ function imagex_aggregator_views_default_views() {
   $handler->display->display_options['allow']['fields_override'] = 'fields_override';
   $handler->display->display_options['link_to_view'] = '1';
   $export['imagex_aggregator_content'] = $view;
+
+  features_alter_code('views_view', $export);
 
   return $export;
 }
