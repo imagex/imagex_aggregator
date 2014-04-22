@@ -147,29 +147,31 @@ function imagex_aggregator_extras_query_node_access_alter($query) {
  */
 function imagex_aggregator_extras_entity_presave($entity, $type) {
   $language = entity_language($type, $entity);
-  if (isset($entity->field_tags) && is_array($entity->field_imagex_aggregator)) {
-    // We know this entity has a tags field and aggregator field
-    // Now we can add a "Aggregated" tag to it and tie that tag to the Aggregated field
-    $tags = taxonomy_get_term_by_name(IMAGEX_AGGREGATOR_EXTRA_TAG, IMAGEX_AGGREGATOR_EXTRA_VOCAB);
-    if (!empty($tags)) {
-      $tag = array_shift($tags);
-      $exists = FALSE;
-      if (is_array($entity->field_tags[$language])) {
-        foreach ($entity->field_tags[$language] as $key => $existing) {
-          if ($existing['tid'] == $tag->tid) {
-            $exisits = $key;
+  if(isset($entity->field_imagex_aggregator)) {
+    if (isset($entity->field_tags) && is_array($entity->field_imagex_aggregator)) {
+      // We know this entity has a tags field and aggregator field
+      // Now we can add a "Aggregated" tag to it and tie that tag to the Aggregated field
+      $tags = taxonomy_get_term_by_name(IMAGEX_AGGREGATOR_EXTRA_TAG, IMAGEX_AGGREGATOR_EXTRA_VOCAB);
+      if (!empty($tags)) {
+        $tag = array_shift($tags);
+        $exists = FALSE;
+        if (is_array($entity->field_tags[$language])) {
+          foreach ($entity->field_tags[$language] as $key => $existing) {
+            if ($existing['tid'] == $tag->tid) {
+              $exisits = $key;
+            }
           }
         }
+        if ($exists && empty($entity->field_imagex_aggregator[$language][0]['aggregated'])) {
+          // If the tag exists and the aggregated field is empty, then we remove the tag
+          unset($entity->field_tags[$language][$key]);
+        }
+        if (!$exists && !empty($entity->field_imagex_aggregator[$language][0]['aggregated'])) {
+          // If the tag doesn't exist and the aggregated field is set then add the tag
+          $entity->field_tags[$language][] = array('tid' => $tag->tid);
+        }
+        // The other options are a double positive or double negative in which case we don't need to do anything
       }
-      if ($exists && empty($entity->field_imagex_aggregator[$language][0]['aggregated'])) {
-        // If the tag exists and the aggregated field is empty, then we remove the tag
-        unset($entity->field_tags[$language][$key]);
-      }
-      if (!$exists && !empty($entity->field_imagex_aggregator[$language][0]['aggregated'])) {
-        // If the tag doesn't exist and the aggregated field is set then add the tag
-        $entity->field_tags[$language][] = array('tid' => $tag->tid);
-      }
-      // The other options are a double positive or double negative in which case we don't need to do anything
     }
   }
 }
